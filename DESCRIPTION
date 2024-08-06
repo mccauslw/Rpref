@@ -1,0 +1,12 @@
+Package: Rpref
+Title: Code for Sequential Monte Carlo for Random Preferences
+Version: 0.0.0.9000
+Authors@R: 
+    person("William", "McCausland", , "william.j.mccausland@umontreal.ca", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-9896-235X"))
+Description: This package contains code to reproduce the paper "Sequential Monte Carlo for Random Preferences", by William McCausland.
+License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
+    license
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.1
