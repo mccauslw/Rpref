@@ -17,3 +17,5 @@ Imports:
     combinat,
     Matrix,
     stats
+URL: https://github.com/mccauslw/Rpref
+BugReports: https://github.com/mccauslw/Rpref/issues
