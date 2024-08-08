@@ -70,6 +70,7 @@ create_alpha_prior <- function(n, a, b, h = 0.05, eps = 1e-7) {
 #' @export
 #'
 #' @examples
+#' library(RanCh)
 #' n <- 5
 #' u <- create_universe(n)
 #' alpha_prior <- create_alpha_prior(n, 4, 0.1)
@@ -93,7 +94,7 @@ compute_proposal_params <- function(u, alpha_prior, N) {
   g <- exp(ln_g)
   g <- g/(h*sum(g))
   param_init <- c(alpha_prior$a, 100*alpha_prior$b, 100)
-  opt <- optim(param_init, Renyi_al, gr = NULL, alpha_grid, g, h, 3)
+  opt <- stats::optim(param_init, Renyi_al, gr = NULL, alpha_grid, g, h, 3)
   opt$par
 }
 
@@ -108,7 +109,6 @@ compute_proposal_params <- function(u, alpha_prior, N) {
 #' universe.
 #'
 #' @return The first derivative of log f(alpha|pi) with respect to alpha
-#' @export
 #'
 #' @noRd
 log_f_alpha__pi_grad <- function(alpha, p_bar, a, b, n_fact) {
@@ -125,31 +125,33 @@ log_f_alpha__pi_grad <- function(alpha, p_bar, a, b, n_fact) {
 #' @param h distance between adjacent values of alpha on grid
 #'
 #' @return Kullbeck-Leibler divergence
-#' @export
+#'
+#' @importFrom extraDistr dbetapr
 #'
 #' @noRd
 KL <- function(theta, alpha_grid, g, h) {
   ln_ratio = log(g) -
-    extraDist::dbetapr(alpha_grid, theta[1], theta[2], theta[3], log = TRUE)
+    extraDistr::dbetapr(alpha_grid, theta[1], theta[2], theta[3], log = TRUE)
   result <- sum(ln_ratio * h * g)
 }
 
 #' Renyi divergence between density in grid g and a Beta-Gamma
 #' distribution with parameter vector theta.
 #'
-#' @param theta
+#' @param theta parameter vector of Beta-Gamma distribution
 #' @param alpha_grid grid of values of alpha
 #' @param g grid of values of target density
 #' @param h distance between adjacent values of alpha on grid
 #' @param Ral order of Renyi divergence
 #'
 #' @return Renyi divergence
-#' @export
+#'
+#' @importFrom extraDistr dbetapr
 #'
 #' @noRd
 Renyi_al <- function(theta, alpha_grid, g, h, Ral) {
   ratio = exp((Ral-1) *
-             (log(g) - extraDist::dbetapr(alpha_grid,
+             (log(g) - extraDistr::dbetapr(alpha_grid,
                                           theta[1], theta[2], theta[3],
                                           log = TRUE)))
   result <- (1/(Ral-1)) * log(sum(ratio * h * g))

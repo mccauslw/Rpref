@@ -63,6 +63,7 @@ than 3 elements, it is not strictly concave, pi is not identified and the
 returned value of pi will depend on the starting value.
 }
 \examples{
+library(RanCh)
 n <- 5
 u <- create_universe(n)
 N <- vectorize_counts(u, RanCh::MMS_2019_counts[1, , ])

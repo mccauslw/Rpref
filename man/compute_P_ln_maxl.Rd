@@ -24,6 +24,7 @@ Compute Random Choice (RC) model P maximising the RC likelihood and the
 maximum value of the RC log likelihood.
 }
 \examples{
+library(RanCh)
 n <- 5
 u <- create_universe(n)
 N <- vectorize_counts(u, RanCh::MMS_2019_counts[1, , ])

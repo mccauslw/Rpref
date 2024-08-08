@@ -13,6 +13,7 @@
 #' @export
 #'
 #' @examples
+#' library(RanCh)
 #' n <- 5
 #' n_fact = factorial(n)
 #' pi <- rep(1/n_fact, n_fact) # Uniform distribution over preference orders
@@ -41,6 +42,7 @@ compute_pi_ln_like <- function(pi, u, N) {
 #' @export
 #'
 #' @examples
+#' library(RanCh)
 #' n <- 5
 #' n_fact = factorial(n)
 #' pi <- rep(1/n_fact, n_fact) # Uniform distribution over preference orders
@@ -98,6 +100,7 @@ compute_pi_score <- function(pi, u, N) {
 #' @export
 #'
 #' @examples
+#' library(RanCh)
 #' n <- 5
 #' u <- create_universe(n)
 #' N <- vectorize_counts(u, RanCh::MMS_2019_counts[1, , ])
@@ -191,9 +194,9 @@ compute_pi_ln_maxl <- function(u, N, init_pi = rep(1/u$n_orders, u$n_orders),
 # WJM: consider deleting.
 sim_MCMC <- function(u, M, N, alpha, gamma_p = NULL) {
   if (is.null(gamma_p))
-    gamma_p = rgamma(u$n_orders, alpha/u$n_orders)
-  big_bl_n = fact(u$n-1)
-  small_bl_n = fact(u$n-2)
+    gamma_p = stats::rgamma(u$n_orders, alpha/u$n_orders)
+  big_bl_n = factorial(u$n-1)
+  small_bl_n = factorial(u$n-2)
 
   sum_gamma_p = rep.int(NA, M)
   sum_ln_gamma_p = rep.int(NA, M)
@@ -213,11 +216,11 @@ sim_MCMC <- function(u, M, N, alpha, gamma_p = NULL) {
         gamma_p_star = gamma_p
         gamma_p_star[(big_bl * big_bl_n + 1):
                        ((big_bl + 1) * big_bl_n)] =
-          rgamma(big_bl_n, alpha/u$n_orders)
+          stats::rgamma(big_bl_n, alpha/u$n_orders)
         sum_gamma_p_star = sum(gamma_p_star)
         pi_star = gamma_p_star / sum_gamma_p_star
         ln_like_num = compute_pi_ln_like(pi_star, u, N)
-        if (runif(1) < exp(ln_like_num - ln_like_den)) {
+        if (stats::runif(1) < exp(ln_like_num - ln_like_den)) {
           pi = pi_star
           ln_like_den = ln_like_num
           gamma_p = gamma_p_star
@@ -227,11 +230,11 @@ sim_MCMC <- function(u, M, N, alpha, gamma_p = NULL) {
         gamma_p_star = gamma_p
         gamma_p_star[(small_bl * small_bl_n + 1):
                        ((small_bl + 1) * small_bl_n)] =
-          rgamma(small_bl_n, alpha/u$n_orders)
+          stats::rgamma(small_bl_n, alpha/u$n_orders)
         sum_gamma_p_star = sum(gamma_p_star)
         pi_star = gamma_p_star / sum_gamma_p_star
         ln_like_num = compute_pi_ln_like(pi_star, u, N)
-        if (runif(1) < exp(ln_like_num - ln_like_den)) {
+        if (stats::runif(1) < exp(ln_like_num - ln_like_den)) {
           pi = pi_star
           ln_like_den = ln_like_num
           gamma_p = gamma_p_star

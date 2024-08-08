@@ -20,6 +20,7 @@ where choice probability vectors are mutually independent and each is
 uniformly distributed on its corresponding probability simplex.
 }
 \examples{
+library(RanCh)
 n <- 5
 u <- create_universe(n)
 N <- vectorize_counts(u, RanCh::MMS_2019_counts[1, , ])

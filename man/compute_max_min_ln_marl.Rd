@@ -22,6 +22,7 @@ at the RP model where all preferences are equally likely. See Section 4.1
 of the reference below.
 }
 \examples{
+library(RanCh)
 n <- 5
 u <- create_universe(n)
 N <- vectorize_counts(u, RanCh::MMS_2019_counts[1, , ])

@@ -14,8 +14,11 @@ Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 Imports: 
+    bayesm,
     combinat,
+    extraDistr,
     Matrix,
+    RanCh,
     stats
 URL: https://github.com/mccauslw/Rpref
 BugReports: https://github.com/mccauslw/Rpref/issues

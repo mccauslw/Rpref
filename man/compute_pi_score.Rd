@@ -21,6 +21,7 @@ Evaluate gradient, with repect to pi, of RP log likelihood,
 as a function of pi, for given data N.
 }
 \examples{
+library(RanCh)
 n <- 5
 n_fact = factorial(n)
 pi <- rep(1/n_fact, n_fact) # Uniform distribution over preference orders
