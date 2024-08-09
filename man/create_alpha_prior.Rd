@@ -36,7 +36,10 @@ lookup tables used for Metropolis-Hastings updates of the conditional posterior
 distribution of alpha given pi, described in Appendix B of the reference below.
 }
 \examples{
-alpha_prior <- create_alpha_prior(5, 4, 0.1)
+n <- 5
+a <- 4
+b <- 0.1
+alpha_prior <- create_alpha_prior(n, a, b)
 
 }
 \references{

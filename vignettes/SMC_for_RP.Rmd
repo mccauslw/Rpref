@@ -1,0 +1,56 @@
+---
+title: "SMC_for_RP"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{SMC_for_RP}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(tidyverse)
+library(Rpref)
+```
+
+```{r init}
+n = 5
+u <- create_universe(n)
+alpha_prior <- create_alpha_prior(n, 2.5, 0.08)
+N <- vectorize_counts(u, RanCh::MMS_2019_counts[1, , ])
+J <- 20
+M <- 16000
+
+# WJM need to rationalize how cycle schedule works
+
+# Grid of lambda values at which to approximate marginal likelihod
+lambda_values <- seq(0.01, 1.00, by=0.01)
+
+# Indices of lambda values at which to transition from C stage to S-M stages
+lambda_break_indices <-
+  c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 18, 21, 25, 30, 35, 40, 45, 50, 55, 60,
+    65, 70, 75, 80, 85, 90, 95, 99, 100)
+n_cycles <- length(lambda_break_indices)
+
+# Number of repetitions of M step to perform, by cycle index
+n_big_sweeps <- c(rep(3, 10), rep(1, n_cycles-10))
+phi_big_sweeps <- 1 - exp(-3*seq(n_cycles)/n_cycles)
+n_sm_sweeps <- c(rep(1, 10), rep(4, 10), rep(6, n_cycles-20))
+phi_sm_sweeps <- 1 - exp(-1*seq(n_cycles)/n_cycles)
+
+# Table of parameter values for each cycle
+cycle_schedule <-
+  tibble(lambda_break_indices = lambda_break_indices, # Last index of each cycle
+         lambda_breaks = lambda_values[lambda_break_indices],
+         n_big_sweeps = n_big_sweeps, phi_big_sweeps,
+         n_sm_sweeps = n_sm_sweeps, phi_sm_sweeps)
+
+RC_sim <- run_RC_sim(u, J, M, alpha_prior, N)
+RP_sim <- run_RP_sim(u, J, M, alpha_prior, N, lambda_values, cycle_schedule)
+```

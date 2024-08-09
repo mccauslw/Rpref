@@ -26,7 +26,10 @@
 #' @importFrom stats pgamma qgamma dgamma uniroot
 #'
 #' @examples
-#' alpha_prior <- create_alpha_prior(5, 4, 0.1)
+#' n <- 5
+#' a <- 4
+#' b <- 0.1
+#' alpha_prior <- create_alpha_prior(n, a, b)
 #'
 #' @template SMC_reference
 #' @template author

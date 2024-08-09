@@ -7,7 +7,8 @@
 compute_proposal_params(u, alpha_prior, N)
 }
 \arguments{
-\item{u}{List with useful precomputed information about choice universes}
+\item{u}{List with precomputed information about choice universes
+of size n, created using \code{\link[=create_universe]{create_universe()}}}
 
 \item{alpha_prior}{List created using create_alpha_prior}
 

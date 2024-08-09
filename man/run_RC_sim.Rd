@@ -2,12 +2,13 @@
 % Please edit documentation in R/SMC.R
 \name{run_RC_sim}
 \alias{run_RC_sim}
-\title{Use SMC to simulate the target distribution alpha|N of the Dirichlet RC model}
+\title{Use SMC to simulate the posterior distribution alpha|N of the Dirichlet RC model}
 \usage{
 run_RC_sim(u, J, M, alpha_prior, N)
 }
 \arguments{
-\item{u}{List with useful precomputed information about choice universes}
+\item{u}{List with precomputed information about choice universes
+of size n, created using \code{\link[=create_universe]{create_universe()}}}
 
 \item{J}{Number of independent groups of particles}
 
@@ -36,5 +37,7 @@ n <- 5
 u <- create_universe(n)
 alpha_prior <- create_alpha_prior(n, 4, 0.1)
 N <- vectorize_counts(u, RanCh::MMS_2019_counts[1, , ])
-RC_sim <- run_RC_sim(u, 20, 1000, alpha_prior, N)
+J <- 20
+M <- 1000
+RC_sim <- run_RC_sim(u, J, M, alpha_prior, N)
 }

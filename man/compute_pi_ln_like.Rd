@@ -9,7 +9,8 @@ compute_pi_ln_like(pi, u, N)
 \arguments{
 \item{pi}{Vector of preference probabilities of length n!}
 
-\item{u}{List with useful precomputed information about choice universes}
+\item{u}{List with precomputed information about choice universes
+of size n, created using \code{\link[=create_universe]{create_universe()}}}
 
 \item{N}{Matrix containing observed choice counts in a choice experiment.}
 }

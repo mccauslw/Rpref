@@ -8,7 +8,8 @@ maximum value of the RC log likelihood.}
 compute_P_ln_maxl(u, N)
 }
 \arguments{
-\item{u}{List with useful precomputed information about choice universes}
+\item{u}{List with precomputed information about choice universes
+of size n, created using \code{\link[=create_universe]{create_universe()}}}
 
 \item{N}{Matrix containing observed choice counts in a choice experiment.}
 }

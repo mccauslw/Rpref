@@ -102,7 +102,7 @@ compute_uniform_P_ln_marl <- function(u, N) {
   ln_marl <- sum(ln_Pr_RC_by_A)
 }
 
-#' Use SMC to simulate the target distribution alpha|N of the Dirichlet RC model
+#' Use SMC to simulate the posterior distribution alpha|N of the Dirichlet RC model
 #'
 #' Use SMC to simulate the target distribution alpha|N, the posterior distribution
 #' alpha|N of the scalar parameter alpha of the Dirichlet RC model.
@@ -130,7 +130,9 @@ compute_uniform_P_ln_marl <- function(u, N) {
 #' u <- create_universe(n)
 #' alpha_prior <- create_alpha_prior(n, 4, 0.1)
 #' N <- vectorize_counts(u, RanCh::MMS_2019_counts[1, , ])
-#' RC_sim <- run_RC_sim(u, 20, 1000, alpha_prior, N)
+#' J <- 20
+#' M <- 1000
+#' RC_sim <- run_RC_sim(u, J, M, alpha_prior, N)
 run_RC_sim <- function(u, J, M, alpha_prior, N) {
 
   # Compute alpha proposal distribution based on f(alpha) * Pr[N|alpha,lambda=0]
@@ -167,6 +169,248 @@ run_RC_sim <- function(u, J, M, alpha_prior, N) {
 
   n_plus = sum(N$by_Ax > 0)
   list(alpha=alpha, marl_stats = C_stage_stats, n_plus = n_plus, theta = params)
+}
+
+#' Use SMC to simulate posterior distributions of Dirichlet RC and hybrid models
+#'
+#'
+#' @template param-u
+#' @template param-J
+#' @template param-M
+#' @template param-alpha_prior
+#' @template param-N
+#' @param lambda_values Vector of indices of the hybrid models
+#' @param cycle_schedule Schedule of parameters used for the various SMC cycles
+#'
+#' @return List with the following elements
+#' \describe{
+#'    \item{alpha}{A M/J x J matrix with a sample of alpha from the final target distribution}
+#'    \item{gamma}{?WJM? sample of gamma from the final target distribution}
+#'    \item{lambda_stats}{?WJM? simulation statistics}
+#'    \item{cycle_stats}{?WJM? simulation statistics}
+#'    \item{big_aPr}{Acceptance probabilities for big blocks}
+#'    \item{sm_aPr}{Acceptance probabilities for small blocks}
+#'    \item{alpha_aPr}{Acceptance probabilities for alpha proposals}
+#'    \item{alpha_mu}{?WJM?}
+#' }
+#'
+#' @export
+#'
+#' @importFrom stats rgamma runif
+#'
+#' @examples
+#' library(RanCh)
+#' n <- 5
+#' u <- create_universe(n)
+#' alpha_prior <- create_alpha_prior(n, 4, 0.1)
+#' N <- vectorize_counts(u, RanCh::MMS_2019_counts[1, , ])
+#' J <- 20
+#' M <- 1000
+# RP_sim <- run_RP_sim(u, J, M, alpha_prior, N, lambda_values, cycle_schedule)
+run_RP_sim <- function(u, J, M, alpha_prior, N, lambda_values, cycle_schedule) {
+
+  lambda_aggregate_names =
+    c('ESS', 'W_var', 'marl', 'marl_nse', 'marl_rne',
+      'ln_marl', 'ln_marl_nse', 'cum_ln_marl', 'cum_ln_marl_nse2')
+  n_lambda_values = length(lambda_values)
+  n_cycles = nrow(cycle_schedule)
+
+  # Table to hold marginal likelihood statistics
+  lambda_stats <- list(
+    gr_ESS = matrix(nrow = J, ncol = n_lambda_values),
+    gr_marl = matrix(nrow = J, ncol = n_lambda_values),
+    gr_cum_ln_marl = matrix(nrow = J, ncol = n_lambda_values),
+    aggregates =
+      matrix(nrow = n_lambda_values, ncol = 1 + length(lambda_aggregate_names),
+             dimnames = list(NULL, c('lambda', lambda_aggregate_names)))
+  )
+  lambda_stats$aggregates[, 'lambda'] <- lambda_values
+
+  # Table for cycle parameters pertaining to gamma update
+  n_bl <- c(u$n, u$n*(u$n-1)); bl_len <- c(factorial(u$n-1), factorial(u$n-2))
+  bl_data <- list(big = list(), sm = list())
+  for (blt in 1:length(n_bl)) {
+    bl_data[[blt]]$n_bl = n_bl[blt]
+    bl_data[[blt]]$bl_len = bl_len[blt]
+    bl_data[[blt]]$indices <- seq(n_bl[blt])
+    bl_data[[blt]]$start <- (seq(n_bl[blt]) - 1) * bl_len[blt] + 1
+    bl_data[[blt]]$end <- seq(n_bl[blt]) * bl_len[blt]
+    bl_data[[blt]]$aPr <- matrix(NA, nrow = n_cycles, ncol = n_bl[blt])
+  }
+
+  # alpha information by cycle
+  alpha_mu <- rep(NA, n_cycles)
+  alpha_aPr <- rep(NA, n_cycles)
+
+  # Start with simulation based on lambda = 0
+  RC_sim <- run_RC_sim(u, J, M, alpha_prior, N)
+  alpha <- RC_sim$alpha
+  gr_cum_ln_marl <- RC_sim$marl_stats$gr_cum_ln_marl
+  cum_ln_marl <- RC_sim$marl_stats$cum_ln_marl
+  cum_ln_marl_nse2 <- RC_sim$marl_stats$cum_ln_marl_nse2
+
+  # Compute quantities depending on alpha
+  alpha_p <- outer(rep.int(1/u$n_orders, u$n_orders), alpha)
+  rownames(alpha_p) <- u$order_strings
+  alpha_Ax <- compute_alpha_Ax(u, alpha)
+  rownames(alpha_Ax) <- u$Ax_strings
+  ln_Pr_RC_by_A <- compute_ln_Pr_by_A(u, 'RC', alpha_Ax, N)
+
+  # Draw gamma_p from gamma_p|alpha, same as gamma_p|alpha, N, lambda = 0
+  # Columns are iid, the rows are independent.
+  # An element i,j is distributed as Gamma(alpha_i, 1), where alpha_i
+  # is the i'th element of alpha_p.
+  gamma_p <- matrix(stats::rgamma(u$n_orders * M, alpha_p),
+                    nrow=u$n_orders, ncol=M)
+  rownames(gamma_p) <- u$order_strings
+  gamma_Ax <- compute_gamma_Ax(u, gamma_p)
+  ln_Pr_rp_by_A <- compute_ln_Pr_by_A(u, 'RP', gamma_Ax, N)
+
+  # Initialize loop over cycles
+  old_ll <- compute_ln_like(u, 0.0, ln_Pr_RC_by_A, NULL)
+  first_lambda_index = 1
+
+  # Loop over S-C-M cycles
+  for (cycle_index in 1:n_cycles) {
+
+    n_sweeps <- c(cycle_schedule[[cycle_index, 'n_big_sweeps']],
+                  cycle_schedule[[cycle_index, 'n_sm_sweeps']])
+    phi_sweeps <- c(cycle_schedule[[cycle_index, 'phi_big_sweeps']],
+                    cycle_schedule[[cycle_index, 'phi_sm_sweeps']])
+    last_lambda_index <- cycle_schedule[[cycle_index, 'lambda_break_indices']]
+    lambda_index_range <- seq(first_lambda_index, last_lambda_index)
+    cycle_lambda_values <- lambda_values[lambda_index_range]
+    n_lambda_index <- length(lambda_index_range)
+    last_lambda <- cycle_lambda_values[n_lambda_index]
+
+    # C stage: compute importance weights
+    #####################################
+
+    ll <- compute_ln_like(u, cycle_lambda_values, ln_Pr_RC_by_A, ln_Pr_rp_by_A)
+    w <- ll - as.vector(old_ll)
+
+    for (lambda_i in lambda_index_range) {
+      single_lambda_stats <-
+        weights_to_C_stage_stats(exp(w[, lambda_i - first_lambda_index + 1]),
+                                 cum_ln_marl, cum_ln_marl_nse2, gr_cum_ln_marl)
+      for (name in lambda_aggregate_names)
+        lambda_stats$aggregates[lambda_i, name] <- single_lambda_stats[[name]]
+      lambda_stats$gr_ESS[, lambda_i] <- single_lambda_stats$gr_ESS
+      lambda_stats$gr_marl[, lambda_i] <- single_lambda_stats$gr_marl
+      lambda_stats$gr_cum_ln_marl[, lambda_i] <- single_lambda_stats$gr_cum_ln_marl
+    }
+
+    # Values at last lambda value of cycle
+    gr_cum_ln_marl <- single_lambda_stats$gr_cum_ln_marl
+    cum_ln_marl <- single_lambda_stats$cum_ln_marl
+    cum_ln_marl_nse2 <- single_lambda_stats$cum_ln_marl_nse2
+
+    # Selection (resampling) stage
+    ##############################
+
+    # Resample alpha and gamma using final weights, group by group
+    W = matrix(exp(w[, n_lambda_index]), nrow=M/J, ncol=J)
+    for (j in 1:J) {
+      # Old multinomial sampling
+      #probabilities = W[,j] / sum(W[,j])
+      #if (any(is.nan(probabilities))) {
+      #  print(cycle_index)
+      #  print(summary(alpha))
+      #  print(summary(colSums(gamma)))
+      #}
+      #selection <- sample.int(M/J, M/J, replace=TRUE, prob=probabilities)
+
+      # New residual sampling
+      En <- W[,j] / mean(W[,j])
+      indices = seq(M/J)
+      sure_n = floor(En)
+      resid_n = En - sure_n
+      sure_M = sum(sure_n)
+      resid_M = M/J - sure_M
+      selection <- c(rep(seq(M/J), sure_n),
+                     sample.int(M/J, resid_M, replace=TRUE, prob=resid_n))
+
+      gamma_p[,(1+(j-1)*M/J):(j*M/J)] <- gamma_p[,(selection+(j-1)*(M/J))]
+      alpha[(1+(j-1)*M/J):(j*M/J)] <- alpha[(selection+(j-1)*(M/J))]
+    }
+    alpha_p = outer(rep.int(1/u$n_orders, u$n_orders), alpha)
+
+    # Mutation stage
+    ################
+
+    # Instead of recomputing gamma_Ax, alpha_Ax, ln_Pr_rp_by_A,
+    # construct at resampling step
+    gamma_Ax <- compute_gamma_Ax(u, gamma_p)
+    alpha_Ax <- compute_alpha_Ax(u, alpha)
+    ln_Pr_RC_by_A <- compute_ln_Pr_by_A(u, 'RC', alpha_Ax, N)
+    ln_Pr_rp_by_A <- compute_ln_Pr_by_A(u, 'RP', gamma_Ax, N)
+    den <- compute_ln_like(u, last_lambda, ln_Pr_RC_by_A, ln_Pr_rp_by_A)
+
+    for (blt in 1:length(bl_data)) {
+      bld <- bl_data[[blt]]
+      bl_data[[blt]]$aPr[cycle_index, ] <- 0
+      phi <- phi_sweeps[blt]
+      for (i_sweep in 1:n_sweeps[blt]) {
+        for (i_bl in 1:(bld$n_bl)) {
+
+          # Redraw a random sample of gamma vectors
+          small_gamma_indices <- seq(bld$start[i_bl], bld$end[i_bl])
+          small_pi_to_P <- u$pi_to_P[, small_gamma_indices]
+          small_alpha_p <- alpha_p[small_gamma_indices, ]
+          small_alpha_total <- colSums(small_alpha_p)
+          small_gamma_p <- gamma_p[small_gamma_indices, ]
+
+          small_gamma_total <- colSums(small_gamma_p)
+          AR_small_gamma_total <-
+            AR_gamma(small_gamma_total, small_alpha_total, phi)
+          small_gamma_p_star <- matrix(rgamma(bld$bl_len * M, small_alpha_p),
+                                       nrow=bld$bl_len, ncol=M)
+          small_gamma_total_star <-
+            pmax(colSums(small_gamma_p_star), .Machine$double.xmin)
+          scale_value <- small_gamma_total_star/AR_small_gamma_total
+          small_gamma_p_star <-
+            scale(small_gamma_p_star, center=F, scale=scale_value)
+          small_gamma_p_star <- pmax(small_gamma_p_star, .Machine$double.xmin)
+
+          # Recompute likelihood values for proposal, accept or reject
+          gamma_Ax_diff <- small_pi_to_P %*% (small_gamma_p_star-small_gamma_p)
+          gamma_Ax_star <- pmax(gamma_Ax + gamma_Ax_diff, .Machine$double.xmin)
+          ln_Pr_rp_by_A_star <- compute_ln_Pr_by_A(u, 'RP', gamma_Ax_star, N)
+          num <- compute_ln_like(u, last_lambda, ln_Pr_RC_by_A,
+                                 ln_Pr_rp_by_A_star)
+          H <- pmin(1, exp(num-den))
+          accept <- (runif(M) < H)
+          gamma_p[small_gamma_indices, accept] <- small_gamma_p_star[, accept]
+          gamma_Ax <- compute_gamma_Ax(u, gamma_p)
+          den[accept] <- num[accept]
+          bl_data[[blt]]$aPr[cycle_index, i_bl] <-
+            bl_data[[blt]]$aPr[cycle_index, i_bl] + mean(H)
+        }
+      }
+      bl_data[[blt]]$aPr[cycle_index, ] <-
+        bl_data[[blt]]$aPr[cycle_index, ] / n_sweeps[blt]
+    }
+    ln_Pr_rp_by_A <- compute_ln_Pr_by_A(u, 'RP', gamma_Ax, N)
+
+    # Update alpha, update likelihood for next cycle
+    res <- update_alpha(u, N, alpha_prior, alpha, gamma_p, last_lambda, ln_Pr_rp_by_A)
+    alpha <- res$alpha
+    gamma_p <- res$gamma_p
+    alpha_aPr[cycle_index] = res$aPr
+    alpha_mu[cycle_index] = res$mu
+    alpha_Ax <- compute_alpha_Ax(u, alpha)
+    alpha_p <- outer(rep.int(1/u$n_orders, u$n_orders), alpha)
+    ln_Pr_RC_by_A <- compute_ln_Pr_by_A(u, 'RC', alpha_Ax, N)
+    old_ll <- compute_ln_like(u, last_lambda, ln_Pr_RC_by_A, ln_Pr_rp_by_A)
+
+    first_lambda_index = last_lambda_index + 1
+  }
+
+  list(alpha = alpha, gamma = gamma_p,
+       lambda_stats = lambda_stats,
+       cycle_stats = lambda_stats$aggregates[cycle_schedule$lambda_break_indices,],
+       big_aPr = bl_data[[1]]$aPr, sm_aPr = bl_data[[2]]$aPr,
+       alpha_aPr = alpha_aPr, alpha_mu = alpha_mu)
 }
 
 # Compute sample statistics and standard errors for a sample targeting
@@ -364,7 +608,7 @@ update_alpha <- function(u, N, alpha_prior, alpha, gamma_p, lambda, ln_Pr_RP_by_
   b_bar <- alpha_prior$b - p_bar + b_delta
 
   alpha_Ax <- compute_alpha_Ax(u, alpha)
-  ln_Pr_RC_by_A <- compute_ln_Pr_by_A(u, 'ind', alpha_Ax, N)
+  ln_Pr_RC_by_A <- compute_ln_Pr_by_A(u, 'RC', alpha_Ax, N)
   ln_ll <- compute_ln_like(u, lambda, ln_Pr_RC_by_A, ln_Pr_RP_by_A)
   ln_f_over_g <- lgamma(alpha + 1) -
     n_fact * lgamma(alpha/n_fact + 1) -
@@ -375,7 +619,7 @@ update_alpha <- function(u, N, alpha_prior, alpha, gamma_p, lambda, ln_Pr_RP_by_
     # Next compute ln Pr[N|alpha_star, lambda = 0], ln Pr[N|alpha, lambda = 0]
     alpha_star <- stats::rgamma(M, a_bar, b_bar)
     alpha_Ax_star <- compute_alpha_Ax(u, alpha_star)
-    ln_Pr_RC_by_A_star <- compute_ln_Pr_by_A(u, 'ind', alpha_Ax_star, N)
+    ln_Pr_RC_by_A_star <- compute_ln_Pr_by_A(u, 'RC', alpha_Ax_star, N)
     ln_ll_star <- compute_ln_like(u, lambda, ln_Pr_RC_by_A_star, ln_Pr_RP_by_A)
 
     # Next evaluate proposal density g and target density f at alpha and alpha_star
@@ -393,7 +637,7 @@ update_alpha <- function(u, N, alpha_prior, alpha, gamma_p, lambda, ln_Pr_RP_by_
     ln_f_over_g[accept] <- ln_f_over_g_star[accept]
     ln_ll[accept] <- ln_ll_star[accept]
   }
-  G = stats::rgamma(M, alpha)
+  G <- stats::rgamma(M, alpha)
   gamma_p <- scale(gamma_p, center=F, scale=G0/G)
   aPr <- aPr / n_reps
   list(alpha = alpha, gamma_p = gamma_p, aPr = aPr, mu = mean(alpha))

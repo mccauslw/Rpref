@@ -7,7 +7,8 @@
 vectorize_counts(u, choice_counts)
 }
 \arguments{
-\item{u}{List with useful precomputed information about choice universes}
+\item{u}{List with precomputed information about choice universes
+of size n, created using \code{\link[=create_universe]{create_universe()}}}
 
 \item{choice_counts}{Matrix of choice counts indexed by choice set (row) and
 choice object (column)}
