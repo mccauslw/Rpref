@@ -5,9 +5,10 @@
 #' Evaluate RP log likelihood as a function of pi,
 #' the vector of preference probabilities, for given data N.
 #'
-#' @template param-pi
-#' @template param-u
-#' @template param-N
+#' @param pi vector of preference probabilities of length n!
+#' @param u list with precomputed information about choice universes
+#'      of size n, created using [create_universe()]
+#' @param N matrix containing observed choice counts in a choice experiment
 #'
 #' @return The value of the RP log likelihood at the given value of pi
 #' @export
@@ -21,8 +22,7 @@
 #' N <- vectorize_counts(u, RanCh::MMS_2019_counts[1, , ])
 #' pi_ln_like <- compute_pi_ln_like(pi, u, N)
 #'
-#' @template SMC_reference
-#' @template author
+#' @inherit create_universe author references
 compute_pi_ln_like <- function(pi, u, N) {
   P_Ax <- u$pi_to_P %*% pi
   P_Ax[N$by_Ax == 0] <- 1
@@ -34,9 +34,7 @@ compute_pi_ln_like <- function(pi, u, N) {
 #' Evaluate gradient, with repect to pi, of RP log likelihood,
 #' as a function of pi, for given data N.
 #'
-#' @template param-pi
-#' @template param-u
-#' @template param-N
+#' @inheritParams compute_pi_ln_like
 #'
 #' @return Gradient of RP log likelihood, a vector of size n!.
 #' @export
@@ -50,8 +48,7 @@ compute_pi_ln_like <- function(pi, u, N) {
 #' N <- vectorize_counts(u, RanCh::MMS_2019_counts[1, , ])
 #' pi_score <- compute_pi_score(pi, u, N)
 #'
-#' @template SMC_reference
-#' @template author
+#' @inherit create_universe author references
 compute_pi_score <- function(pi, u, N) {
   P_Ax <- as.vector(u$pi_to_P %*% pi)
   P_Ax[N$by_Ax == 0] <- 1
@@ -69,8 +66,7 @@ compute_pi_score <- function(pi, u, N) {
 #' than 3 elements, it is not strictly concave, pi is not identified and the
 #' returned value of pi will depend on the starting value.
 #'
-#' @template param-u
-#' @template param-N
+#' @inheritParams compute_pi_ln_like
 #' @param init_pi Starting value for vector pi that defaults to the discrete uniform distriubtion.
 #' @param delta Parameter of a halt condition. If the range of log likelihood gradient values
 #          associated with positive elements of pi is less than delta, and the gradient
@@ -106,8 +102,7 @@ compute_pi_score <- function(pi, u, N) {
 #' N <- vectorize_counts(u, RanCh::MMS_2019_counts[1, , ])
 #' pi_ln_maxl <- compute_pi_ln_maxl(u, N)
 #'
-#' @template SMC_reference
-#' @template author
+#' @inherit create_universe author references
 #' @references
 #' Chok, J. and G. M. Vasil (2023). Convex Optimization over a Probability Simplex, arXiv:2305.09046
 compute_pi_ln_maxl <- function(u, N, init_pi = rep(1/u$n_orders, u$n_orders),

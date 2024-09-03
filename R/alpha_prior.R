@@ -5,16 +5,15 @@
 #' distribution of alpha given pi, described in Appendix B of the reference below.
 #'
 #' @param n Number of elements in choice universe
-#' @param a Shape parameter of a Gamma prior distribution of alpha
-#' @param b Rate parameter of a Gamma prior distribution of alpha
+#' @param a, b shape and rate parameters of a Gamma prior distribution of alpha
 #' @param h Distance between grid points in a grid of values of p_bar
 #' @param eps the probability defining two extreme prior quantiles of alpha
 #'
 #' @return A list with the following elements
 #'\describe{
-#'   \item{a}{Same as input with that name.}
-#'   \item{b}{Same as input with that name.}
-#'   \item{h}{Same as input with that name.}
+#'   \item{a,b}{Same as inputs with those names}
+#'   \item{b}{Same as input with that name}
+#'   \item{h}{Same as input with that name}
 #'   \item{p_grid}{Grid of values of p_bar}
 #'   \item{alpha_mode}{Grid of values of mode of alpha|pi as function of p_bar}
 #'   \item{psi_diff}{Grid of values of psi(1+alpha_mode) - psi(1+alpha_mode/n!)}
@@ -31,8 +30,7 @@
 #' b <- 0.1
 #' alpha_prior <- create_alpha_prior(n, a, b)
 #'
-#' @template SMC_reference
-#' @template author
+#' @inherit create_universe author references
 create_alpha_prior <- function(n, a, b, h = 0.05, eps = 1e-7) {
   n_fact = factorial(n)
   # Prior quantiles eps and 1-eps of alpha
@@ -66,7 +64,7 @@ create_alpha_prior <- function(n, a, b, h = 0.05, eps = 1e-7) {
 #' minimize the Renyi divergence
 #'
 #' @template param-u
-#' @param alpha_prior List created using create_alpha_prior
+#' @param alpha_prior list created using [create_alpha_prior()]
 #' @template param-N
 #'
 #' @return Parameter vector of Beta prime distribution
@@ -80,6 +78,7 @@ create_alpha_prior <- function(n, a, b, h = 0.05, eps = 1e-7) {
 #' N <- vectorize_counts(u, RanCh::MMS_2019_counts[1, , ])
 #' theta <- compute_proposal_params(u, alpha_prior, N)
 #'
+#' @inherit create_universe author references
 compute_proposal_params <- function(u, alpha_prior, N) {
 
   # Construct grid of alpha values
@@ -103,11 +102,10 @@ compute_proposal_params <- function(u, alpha_prior, N) {
 
 #' Evaluate the 1st derivative of log f(alpha|pi) with respect to alpha.
 #'
-#' @param alpha, current value of alpha
-#' @param p_bar, sufficient statistic for pi equal to the arithmetic mean of
+#' @param alpha current value of alpha
+#' @param p_bar sufficient statistic for pi equal to the arithmetic mean of
 #' the log preference probabiliites.
-#' @param a, shape parameter of the Gamma prior distribution of alpha.
-#' @param b, rate parameter of the Gamma prior distribution of alpha.
+#' @inheritParams create_alpha_prior
 #' @param n_fact, the value n!, where n is the number of elements in the choice
 #' universe.
 #'
@@ -141,10 +139,7 @@ KL <- function(theta, alpha_grid, g, h) {
 #' Renyi divergence between density in grid g and a Beta-Gamma
 #' distribution with parameter vector theta.
 #'
-#' @param theta parameter vector of Beta-Gamma distribution
-#' @param alpha_grid grid of values of alpha
-#' @param g grid of values of target density
-#' @param h distance between adjacent values of alpha on grid
+#' @inheritParams KL
 #' @param Ral order of Renyi divergence
 #'
 #' @return Renyi divergence

@@ -6,8 +6,7 @@
 #' at the RP model where all preferences are equally likely. See Section 4.1
 #' of the reference below.
 #'
-#' @template param-u
-#' @template param-N
+#' @inheritParams compute_pi_ln_like
 #'
 #' @return Max-min log likelihood value
 #'
@@ -20,8 +19,8 @@
 #' N <- vectorize_counts(u, RanCh::MMS_2019_counts[1, , ])
 #' compute_max_min_ln_marl(u, N)
 #'
-#' @template SMC_reference
-#' @template author
+#' @inherit create_universe author references
+#'
 compute_max_min_ln_marl <- function(u, N) {
   ln_marl <- 0
   for (A in 1:u$n_subsets) {
@@ -35,8 +34,7 @@ compute_max_min_ln_marl <- function(u, N) {
 #' Compute Random Choice (RC) model P maximising the RC likelihood and the
 #' maximum value of the RC log likelihood.
 #'
-#' @template param-u
-#' @template param-N
+#' @inheritParams compute_pi_ln_like
 #'
 #' @return A list with the following elements
 #' \describe{
@@ -53,8 +51,8 @@ compute_max_min_ln_marl <- function(u, N) {
 #' N <- vectorize_counts(u, RanCh::MMS_2019_counts[1, , ])
 #' compute_max_min_ln_marl(u, N)
 #'
-#' @template SMC_reference
-#' @template author
+#' @inherit create_universe author references
+#'
 compute_P_ln_maxl <- function(u, N) {
   P_mle <- rep(0, u$n_probs)
   ln_maxl <- 0
@@ -79,8 +77,7 @@ compute_P_ln_maxl <- function(u, N) {
 #' where choice probability vectors are mutually independent and each is
 #' uniformly distributed on its corresponding probability simplex.
 #'
-#' @template param-u
-#' @template param-N
+#' @inheritParams compute_pi_ln_like
 #'
 #' @return The value of the log marginal likelihood
 #'
@@ -93,8 +90,8 @@ compute_P_ln_maxl <- function(u, N) {
 #' N <- vectorize_counts(u, RanCh::MMS_2019_counts[1, , ])
 #' compute_uniform_P_ln_marl(u, N)
 #'
-#' @template SMC_reference
-#' @template author
+#' @inherit create_universe author references
+#'
 compute_uniform_P_ln_marl <- function(u, N) {
   alpha_Ax <- matrix(1, nrow=nrow(u$Ax_table), ncol=1)
   rownames(alpha_Ax) <- rownames(u$Ax_table)
@@ -107,11 +104,11 @@ compute_uniform_P_ln_marl <- function(u, N) {
 #' Use SMC to simulate the target distribution alpha|N, the posterior distribution
 #' alpha|N of the scalar parameter alpha of the Dirichlet RC model.
 #'
-#' @template param-u
-#' @template param-J
-#' @template param-M
-#' @template param-alpha_prior
-#' @template param-N
+#' @inheritParams compute_pi_ln_like
+#' @param J number of independent groups of particles
+#' @param M umber of particles, must be multiple of J
+#' @param alpha_prior list with information on the prior distribution of alpha,
+#'                    created using [create_alpha_prior()]
 #'
 #' @return A list with the following elements
 #' \describe{
@@ -133,6 +130,9 @@ compute_uniform_P_ln_marl <- function(u, N) {
 #' J <- 20
 #' M <- 1000
 #' RC_sim <- run_RC_sim(u, J, M, alpha_prior, N)
+#'
+#' @inherit create_universe author references
+#'
 run_RC_sim <- function(u, J, M, alpha_prior, N) {
 
   # Compute alpha proposal distribution based on f(alpha) * Pr[N|alpha,lambda=0]
@@ -174,11 +174,7 @@ run_RC_sim <- function(u, J, M, alpha_prior, N) {
 #' Use SMC to simulate posterior distributions of Dirichlet RC and hybrid models
 #'
 #'
-#' @template param-u
-#' @template param-J
-#' @template param-M
-#' @template param-alpha_prior
-#' @template param-N
+#' @inheritParams run_RC_sim
 #' @param lambda_values Vector of indices of the hybrid models
 #' @param cycle_schedule Schedule of parameters used for the various SMC cycles
 #'
@@ -206,7 +202,10 @@ run_RC_sim <- function(u, J, M, alpha_prior, N) {
 #' N <- vectorize_counts(u, RanCh::MMS_2019_counts[1, , ])
 #' J <- 20
 #' M <- 1000
-# RP_sim <- run_RP_sim(u, J, M, alpha_prior, N, lambda_values, cycle_schedule)
+#' RP_sim <- run_RP_sim(u, J, M, alpha_prior, N, lambda_values, cycle_schedule)
+#'
+#' @inherit create_universe author references
+#'
 run_RP_sim <- function(u, J, M, alpha_prior, N, lambda_values, cycle_schedule) {
 
   lambda_aggregate_names =

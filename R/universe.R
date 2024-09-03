@@ -25,7 +25,7 @@
 #'   \item{A_strings}{Vector of strings naming rows of A_table; the strings 'a' and
 #'   'ab', for example, identify the subsets \{a\} and \{a,b\}}
 #'   \item{pi_to_P}{Matrix giving choice probabilities when left multiplying preference probabilities}
-#'   \item{pi_to_P_logical}{Matrix, same as pi_to_P but with TRUE/FALSE instead of 1/0}
+#'   \item{pi_to_P_logical}{Matrix, same as pi_to_P but with TRUE/FALSE replacing 1/0}
 #' }
 #'
 #' @export
@@ -37,8 +37,11 @@
 #' create_universe(3)      # Example where output is not excessively long
 #' u = create_universe(5)  # Example corresponding to datasets in reference, above.
 #'
-#' @template SMC_reference
-#' @template author
+#' @references
+#' McCausland, W. (2024). Sequential Monte Carlo for Random Prefernces. Unpublished manuscript.
+#' @author
+#' William McCausland, \email{william.j.mccausland@umontreal.ca}
+
 create_universe <- function(n) {
   n_objects <- n               # Number of objects in universe
   n_orders <- factorial(n)     # Number of orders (permutations) over objects

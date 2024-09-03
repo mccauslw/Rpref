@@ -2,7 +2,7 @@
 #'
 #' Create a list with two vectors of choice counts
 #'
-#' @template param-u
+#' @inheritParams compute_pi_ln_like
 #' @param choice_counts Matrix of choice counts indexed by choice set (row) and
 #' choice object (column)
 #'
