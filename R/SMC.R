@@ -412,22 +412,44 @@ run_RP_sim <- function(u, J, M, alpha_prior, N, lambda_values, cycle_schedule) {
        alpha_aPr = alpha_aPr, alpha_mu = alpha_mu)
 }
 
-# Compute sample statistics and standard errors for a sample targeting
-# a distribution.
-# The sample x is a vector of length M, with J mutually independent
-# subvectors, each of size M/J.
-# The inputs are
-# - x, the sample in the form of a vector of length M
-# - J, the number of independent subvectors (i.e. the number of groups of particles)
-# - p, a vector of probabilities for which to compute quantiles
-# The output is a list with fields
-# - mu, sample mean
-# - std, sample standard deviation
-# - nse, numerical standard error for the sample mean
-# - rne, relative numerical efficiency for the sample mean
-# - p, the vector of probabilities given as input
-# - q, the vector of corresponding quantiles
-# - q_nse, a vector of numerical standard errors for the quantiles
+#' Compute sample statistics and standard errors for a collection of SMC samples
+#'
+#' Given a collection of J independent Sequential Monte Carlo (SMC) samples,
+#' compute mean, standard deviation, numerical standard error for the mean,
+#' relative numerical efficiency for the mean, specified quantiles and their
+#' numerical standard errors.
+#'
+#' @param x vector of length M, with J mutually independent subvectors of length
+#'  M/J, each subvector arising from a SMC simulation
+#' @inheritParams run_RC_sim
+#' @param p vector of probabilities for which to compute quantiles
+#'
+#' @return A list with the elements
+#' \describe{
+#'   \item{mu}{sample mean}
+#'   \item{std}{sample standard deviation (measure of posterior uncertainty)}
+#'   \item{nse}{numerical standard error for the sample mean (measure of
+#'   simulation noise)}
+#'   \item{rne}{relative numerical efficiency for the sample mean}
+#'   \item{p}{same as input of that name}
+#'   \item{q}{sample quantiles corresponding to p}
+#'   \item{q_nse}{numerical standard errors for the quantiles}
+#' }
+#' @export
+#'
+#' @examples
+#' library(RanCh)
+#' n <- 5
+#' u <- create_universe(n)
+#' alpha_prior <- create_alpha_prior(n, 4, 0.1)
+#' N <- vectorize_counts(u, RanCh::MMS_2019_counts[1, , ])
+#' J <- 20
+#' M <- 1000
+#' RC_sim <- run_RC_sim(u, J, M, alpha_prior, N)
+#' ind_groups_stats(RC_sim$alpha)
+#'
+#' @inherit create_universe author references
+#'
 ind_groups_stats <- function(x, J, p) {
   M <- length(x)
   s2 <- stats::var(x); std = sqrt(s2)
@@ -442,6 +464,138 @@ ind_groups_stats <- function(x, J, p) {
   q_nse2 = apply(q_by_group, 1, stats::var)/J; q_nse <- sqrt(q_nse2)
   list(mu = mu, std = std, nse = nse, rne = (s2/M)/nse2,
        p = p, q = q, q_nse = q_nse)
+}
+
+#' Compute pdf and cdf on the grid x_grid for a collection of SMC samples
+#'
+#' Given a collection of J independent Sequential Monte Carlo (SMC) samples,
+#' compute the sample probability density function (pdf) and cumulative
+#' distribution function (cdf), with numerical standard errors, at a grid
+#' of points of evaluation
+#'
+#' @inheritParams ind_groups_stats
+#' @param x_grid vector of points of evaluation
+#'
+#' @return A list with elements pdf and cdf, each with elements
+#' \describe{
+#'   \item{x}{vector of argument values}
+#'   \item{func}{vector of function values}
+#'   \item{nse}{vector of numerical standard errors for the function values}
+#' }
+#' @export
+#'
+#' @examples
+compute_pdf_cdf_on_grid <- function(x, J, x_grid) {
+  if (length(x_grid) == 1) {
+    x_grid = seq(min(x), max(x), len=x_grid)
+  }
+  M <- length(x)
+  Kp1 <- length(x_grid); K = Kp1 - 1
+  x_by_group <- matrix(x, nrow=M/J, ncol=J)
+  pdf_by_group <- matrix(nrow=K, ncol=J)
+  cdf_by_group <- matrix(nrow=Kp1, ncol=J)
+  for (j in 1:J) {
+    h <- hist(x_by_group[,j], breaks = x_grid, plot=F)
+    pdf_by_group[,j] <- h$density
+    cdf_by_group[,j] <- c(0, cumsum(h$counts/sum(h$counts)))
+  }
+  pdf <- rowMeans(pdf_by_group)
+  cdf <- rowMeans(cdf_by_group)
+  pdf_nse <- sqrt(rowMeans((pdf_by_group-pdf)^2)/J)
+  cdf_nse <- sqrt(rowMeans((cdf_by_group-cdf)^2)/J)
+  list(pdf = list(x=h$mids, func=pdf, nse = pdf_nse),
+       cdf = list(x=x_grid, func=cdf, nse = cdf_nse))
+}
+
+#' Compute the posterior pdf and cdf of binary choice probabilities for the
+#' Dirichlet Random Preference model
+#'
+#' For each binary choice probability, compute its posterior pdf and cdf for the
+#' Dirichlet RP model, on the grid p_grid of binary choice probabilities,
+#' given a collection of SMC samples that target the posterior distribution
+#' of gamma in the Dirichlet RP model
+#'
+#' @inheritParams ind_groups_stats
+#' @inheritParams compute_pi_ln_like
+#' @param gamma_p matrix, M by n!, where each column is a vector of
+#' unnormalized preference probabilities
+#' @param p_grid vector of choice probability values
+#'
+#' @return A list with elements correponding to binary subsets of choice
+#' objects. For a universe of size n=5, there are n choose 2, or 10 such
+#' subsets. Each element of the list is a list organized in the same way
+#' as the return value of [compute_pdf_cdf_on_grid()].
+#' @export
+#'
+#' @examples
+#'
+#' @inherit create_universe author references
+#'
+compute_RP_binp_funcs <- function(u, gamma_p, J, N, p_grid) {
+  M <- ncol(gamma_p)
+  n_grid_pts = length(p_grid)
+  Ax_binaries <- u$A_table[u$A_table[,'nA']==2, 'Ax']
+  n_binary <- length(Ax_binaries)
+  binp_funcs <- vector("list", n_binary)
+
+  # bin_probs is a n_binary x M matrix of binary choice probabilities
+  bin_probs <- t(t(u$pi_to_P[Ax_binaries,] %*% gamma_p)/colSums(gamma_p))
+  for (i_bin in seq(n_binary)) {
+    binp_funcs[[i_bin]] <- compute_pdf_cdf_on_grid(bin_probs[i_bin,], J, p_grid)
+  }
+  binp_funcs
+}
+
+#' Compute the posterior pdf and cdf of binary choice probabilities for the
+#' Dirichlet Random Choice model
+#'
+#' For each binary choice probability, compute its posterior pdf and cdf for the
+#' Dirichlet RC model, on the grid p_grid of binary choice probabilities,
+#' given a collection of SMC samples that target the posterior distribution
+#' of alpha in the Dirichlet RC model
+#'
+#' @inheritParams compute_RP_binp_funcs
+#' @param alpha vector of length M, sample of values of alpha
+#'
+#' @inherit compute_RP_binp_funcs return
+#' @export
+#'
+#' @examples
+#'
+#' @inherit create_universe author references
+#'
+compute_RC_binp_funcs <- function(u, alpha, J, N, p_grid) {
+  n_grid <- length(p_grid)
+  M <- length(alpha)
+  Ax_binaries <- u$A_table[u$A_table[,'nA']==2, 'Ax']
+  n_binary <- length(Ax_binaries)
+  n1 <- N$by_Ax[Ax_binaries]      # first object count for n_binary choice sets
+  n0 <- N$by_Ax[Ax_binaries + 1]  # second object count for n_binary choice sets
+
+  binp_funcs <- vector("list", n_binary)
+
+  for (i_bin in seq(n_binary)) {
+    a1v <- n1[i_bin] + 0.5 * alpha  # Vector of M Dirichlet weights, 1st object
+    a2v <- n0[i_bin] + 0.5 * alpha  # Vector of M Dirichlet weights, 2nd object
+    a1 <- matrix(a1v, nrow = M/J, ncol = J)
+    a2 <- matrix(a2v, nrow = M/J, ncol = J)
+
+    cdf <- matrix(0, nrow = n_grid, ncol = J)
+    pdf <- matrix(0, nrow = n_grid, ncol = J)
+    for (j in seq(J)) {
+      for (m in seq(M/J)) {
+        pdf <- pdf + dbeta(p_grid, a1[m, j], a2[m, j])
+        cdf <- cdf + pbeta(p_grid, a1[m, j], a2[m, j])
+      }
+      pdf = pdf/(M/J); cdf <- cdf/(M/J)
+    }
+    pdf_mean = rowMeans(pdf); cdf_mean = rowMeans(cdf)
+    binp_funcs[[i_bin]] <- list(
+      pdf = list(x=p_grid, func=pdf_mean, nse=rowMeans((pdf - pdf_mean)^2/J)),
+      cdf = list(x=p_grid, func=cdf_mean, nse=rowMeans((cdf - cdf_mean)^2/J))
+    )
+  }
+  binp_funcs
 }
 
 # Compute marginal likelihood statistics for the vector of importance weights

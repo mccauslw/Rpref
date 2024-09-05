@@ -3,10 +3,10 @@
 #' Create a list with two vectors of choice counts
 #'
 #' @inheritParams compute_pi_ln_like
-#' @param choice_counts Matrix of choice counts indexed by choice set (row) and
-#' choice object (column)
+#' @param choice_counts matrix of choice counts indexed by choice set (row) and
+#'        choice object (column)
 #'
-#' @return List with the following elements
+#' @return List with the elements
 #' \describe{
 #'   \item{by_Ax}{Vector of choice counts, indexed by Ax, a flat index coding
 #'   both choice set and choice object}
@@ -19,6 +19,7 @@
 #' n <- 5
 #' u <- create_universe(n)
 #' N <- vectorize_counts(u, RanCh::MMS_2019_counts[1, , ])
+#'
 vectorize_counts <- function(u, choice_counts) {
   N <- list(by_Ax = rep.int(0, u$n_probs),
             by_A = rep.int(0, u$n_subsets))

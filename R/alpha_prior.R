@@ -4,21 +4,21 @@
 #' lookup tables used for Metropolis-Hastings updates of the conditional posterior
 #' distribution of alpha given pi, described in Appendix B of the reference below.
 #'
-#' @param n Number of elements in choice universe
-#' @param a, b shape and rate parameters of a Gamma prior distribution of alpha
-#' @param h Distance between grid points in a grid of values of p_bar
-#' @param eps the probability defining two extreme prior quantiles of alpha
+#' @param n number of elements in choice universe
+#' @param a,b shape and rate parameters of a Gamma prior distribution of alpha
+#' @param h distance between grid points in a grid of values of p_bar
+#' @param eps parameter specifying extreme prior quantiles (for eps and 1-eps)
+#'        of alpha
 #'
 #' @return A list with the following elements
 #'\describe{
-#'   \item{a,b}{Same as inputs with those names}
-#'   \item{b}{Same as input with that name}
-#'   \item{h}{Same as input with that name}
-#'   \item{p_grid}{Grid of values of p_bar}
-#'   \item{alpha_mode}{Grid of values of mode of alpha|pi as function of p_bar}
-#'   \item{psi_diff}{Grid of values of psi(1+alpha_mode) - psi(1+alpha_mode/n!)}
-#'   \item{p_min}{Minimum value of p_bar in p_grid}
-#'   \item{funcs}{Grids of values of alpha, prior cdf and prior pdf}
+#'   \item{a,b}{same as inputs with those names}
+#'   \item{h}{same as input with that name}
+#'   \item{p_grid}{grid of values of p_bar}
+#'   \item{alpha_mode}{grid of values of mode of alpha|pi as function of p_bar}
+#'   \item{psi_diff}{grid of values of psi(1+alpha_mode) - psi(1+alpha_mode/n!)}
+#'   \item{p_min}{minimum value of p_bar in p_grid}
+#'   \item{funcs}{grids of values of alpha, prior pdf and cdf}
 #' }
 #' @export
 #'
@@ -31,6 +31,7 @@
 #' alpha_prior <- create_alpha_prior(n, a, b)
 #'
 #' @inherit create_universe author references
+#'
 create_alpha_prior <- function(n, a, b, h = 0.05, eps = 1e-7) {
   n_fact = factorial(n)
   # Prior quantiles eps and 1-eps of alpha
@@ -60,12 +61,14 @@ create_alpha_prior <- function(n, a, b, h = 0.05, eps = 1e-7) {
 
 #' Compute gamma proposal distribution for alpha
 #'
-#' Find values of the three parameters of the Beta prime distribution that
-#' minimize the Renyi divergence
+#' Find values of the three parameters of the Beta prime proposal distribution
+#' for alpha that minimize the Renyi divergence of the target distribution, the
+#' posterior distribution of the Dirichlet Random Choice model, from the
+#' proposal distribution
 #'
-#' @template param-u
-#' @param alpha_prior list created using [create_alpha_prior()]
-#' @template param-N
+#' @inheritParams compute_pi_ln_like
+#' @param alpha_prior list containing precomputed information about a Gamma
+#'        prior distribution of alpha, created using [create_alpha_prior()]
 #'
 #' @return Parameter vector of Beta prime distribution
 #' @export
@@ -79,6 +82,7 @@ create_alpha_prior <- function(n, a, b, h = 0.05, eps = 1e-7) {
 #' theta <- compute_proposal_params(u, alpha_prior, N)
 #'
 #' @inherit create_universe author references
+#'
 compute_proposal_params <- function(u, alpha_prior, N) {
 
   # Construct grid of alpha values
@@ -130,6 +134,7 @@ log_f_alpha__pi_grad <- function(alpha, p_bar, a, b, n_fact) {
 #' @importFrom extraDistr dbetapr
 #'
 #' @noRd
+#'
 KL <- function(theta, alpha_grid, g, h) {
   ln_ratio = log(g) -
     extraDistr::dbetapr(alpha_grid, theta[1], theta[2], theta[3], log = TRUE)
@@ -147,6 +152,7 @@ KL <- function(theta, alpha_grid, g, h) {
 #' @importFrom extraDistr dbetapr
 #'
 #' @noRd
+#'
 Renyi_al <- function(theta, alpha_grid, g, h, Ral) {
   ratio = exp((Ral-1) *
              (log(g) - extraDistr::dbetapr(alpha_grid,

@@ -4,28 +4,28 @@
 #' quantities, including tables and convenient row names. The result is a
 #' required input for many functions in this package.
 #'
-#' @param n Number of elements in choice universe
+#' @param n number of elements in choice universe
 #'
 #' @return A list with the following elements
 #'\describe{
-#'   \item{n}{Same as input with that name.}
-#'   \item{n_orders}{Number of preference orders, equal to n!}
-#'   \item{n_subsets}{Number of non-empty subsets of choice universe}
-#'   \item{n_probs}{Total number of choice probabilities, over all doubleton and larger subsets}
-#'   \item{orders}{List of preference orders, with each order a numeric n-vector}
-#'   \item{order_strings}{List of strings (e.g. 'abc', 'acb') representing preference orders}
-#'   \item{inv_orders}{List of inverse (in the sense of permutation inverse) of preference orders}
-#'   \item{singletons}{Vector of singletons, with sets coded as bit strings}
-#'   \item{Ax_table}{n_probs by 2 matrix. Each row gives a unique pair of choice set and element}
-#'   \item{Ax_strings}{Vector of strings naming rows of Ax_table; the string 'ab;a', for example,
+#'   \item{n}{same as input with that name.}
+#'   \item{n_orders}{number of preference orders, equal to n!}
+#'   \item{n_subsets}{number of non-empty subsets of choice universe}
+#'   \item{n_probs}{total number of choice probabilities, over all doubleton and larger subsets}
+#'   \item{orders}{list of preference orders, with each order a numeric n-vector}
+#'   \item{order_strings}{list of strings (e.g. 'abc', 'acb') representing preference orders}
+#'   \item{inv_orders}{list of inverse (in the sense of permutation inverse) of preference orders}
+#'   \item{singletons}{vector of singletons, with sets coded as bit strings}
+#'   \item{Ax_table}{matrix, n_probs by 2. Each row gives a unique pair of choice set and element}
+#'   \item{Ax_strings}{vector of strings naming rows of Ax_table; the string 'ab;a', for example,
 #'   identifies the pair consisting of choice set \{a,b\} and choice object a}
 #'   \item{A_table}{n_subsets by 2 matrix. Each row gives the number of choice probabilities associated
 #'   with the choice subset and the index of the first row of Ax_table where these choice probabilities
 #'   are stored.}
-#'   \item{A_strings}{Vector of strings naming rows of A_table; the strings 'a' and
+#'   \item{A_strings}{vector of strings naming rows of A_table; the strings 'a' and
 #'   'ab', for example, identify the subsets \{a\} and \{a,b\}}
-#'   \item{pi_to_P}{Matrix giving choice probabilities when left multiplying preference probabilities}
-#'   \item{pi_to_P_logical}{Matrix, same as pi_to_P but with TRUE/FALSE replacing 1/0}
+#'   \item{pi_to_P}{matrix giving choice probabilities when left multiplying preference probabilities}
+#'   \item{pi_to_P_logical}{matrix, same as pi_to_P but with TRUE/FALSE replacing 1/0}
 #' }
 #'
 #' @export

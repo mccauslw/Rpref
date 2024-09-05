@@ -23,6 +23,7 @@
 #' pi_ln_like <- compute_pi_ln_like(pi, u, N)
 #'
 #' @inherit create_universe author references
+#'
 compute_pi_ln_like <- function(pi, u, N) {
   P_Ax <- u$pi_to_P %*% pi
   P_Ax[N$by_Ax == 0] <- 1
@@ -49,6 +50,7 @@ compute_pi_ln_like <- function(pi, u, N) {
 #' pi_score <- compute_pi_score(pi, u, N)
 #'
 #' @inherit create_universe author references
+#'
 compute_pi_score <- function(pi, u, N) {
   P_Ax <- as.vector(u$pi_to_P %*% pi)
   P_Ax[N$by_Ax == 0] <- 1
@@ -67,30 +69,30 @@ compute_pi_score <- function(pi, u, N) {
 #' returned value of pi will depend on the starting value.
 #'
 #' @inheritParams compute_pi_ln_like
-#' @param init_pi Starting value for vector pi that defaults to the discrete uniform distriubtion.
-#' @param delta Parameter of a halt condition. If the range of log likelihood gradient values
+#' @param init_pi starting value for vector pi that defaults to the discrete uniform distriubtion.
+#' @param delta parameter of a halt condition. If the range of log likelihood gradient values
 #          associated with positive elements of pi is less than delta, and the gradient
 #          values associated with elements of pi equal to zero are all less than those
 #          associated with positive elements, then the iterations halt.
-#' @param epsilon Lowest value of pi that is considered distinct from zero.
-#' @param n_max_iter Maximum number of iterations
-#' @param beta A momemtum parameter
-#' @param debug A flag that should normally be set to FALSE. If TRUE, some diagnostic
+#' @param epsilon lowest value of pi that is considered distinct from zero.
+#' @param n_max_iter maximum number of iterations
+#' @param beta a momemtum parameter
+#' @param debug a flag that should normally be set to FALSE. If TRUE, some diagnostic
 #' information is displayed to the screen.
-#' @param doplot A flag that should normally be set to FALSE. If TRUE, a diagnostic
+#' @param doplot a flag that should normally be set to FALSE. If TRUE, a diagnostic
 #' plots is displayed.
 #'
-#' @return A list with the following elements
+#' @return A list with the elements
 #' \describe{
-#'   \item{pi}{Final value of the probability vector pi}
-#'   \item{ln_maxl}{Final value of the RP log likelihood.}
-#'   \item{score}{Final value of the RP log likelihood gradient.}
-#'   \item{z}{Final search direction, a decaying linear function of previous score values.}
-#'   \item{S}{Logical vector of length n! indicating which elements of pi are greater than one.}
-#'   \item{n_iter}{Number of realized iterations.}
-#'   \item{score_range}{Difference between maximum and minimum gradient values
+#'   \item{pi}{final value of the probability vector pi}
+#'   \item{ln_maxl}{final value of the RP log likelihood.}
+#'   \item{score}{final value of the RP log likelihood gradient.}
+#'   \item{z}{final search direction, a decaying linear function of previous score values.}
+#'   \item{S}{logical vector of length n! indicating which elements of pi are greater than one.}
+#'   \item{n_iter}{number of realized iterations.}
+#'   \item{score_range}{difference between maximum and minimum gradient values
 #'   associated with positive elements of pi.}
-#'   \item{ln_maxl_diff}{Difference of RP log likelihood values between the
+#'   \item{ln_maxl_diff}{difference of RP log likelihood values between the
 #'   2nd last and last iterations.}
 #' }
 #' @export
@@ -105,6 +107,7 @@ compute_pi_score <- function(pi, u, N) {
 #' @inherit create_universe author references
 #' @references
 #' Chok, J. and G. M. Vasil (2023). Convex Optimization over a Probability Simplex, arXiv:2305.09046
+#'
 compute_pi_ln_maxl <- function(u, N, init_pi = rep(1/u$n_orders, u$n_orders),
                                delta = 0.0001, epsilon = 1e-8, n_max_iter = 15000,
                                beta = 0.95,
